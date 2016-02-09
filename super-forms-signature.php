@@ -94,7 +94,7 @@ if(!class_exists('SUPER_Signature')) :
         */
         public function __construct(){
             $this->init_hooks();
-            do_action('SUPER_Signature_loaded');
+            do_action('super_signature_loaded');
         }
 
         
@@ -150,6 +150,7 @@ if(!class_exists('SUPER_Signature')) :
             if ( $this->is_request( 'frontend' ) ) {
                 
                 // Filters since 1.0.0
+            	add_filter( 'super_form_styles_filter', array( $this, 'add_element_styles' ), 10, 2 );
 
                 // Actions since 1.0.0
                 
@@ -158,8 +159,9 @@ if(!class_exists('SUPER_Signature')) :
             if ( $this->is_request( 'admin' ) ) {
                 
                 // Filters since 1.0.0
-                add_filter( 'super_settings_after_smtp_server_filter', array( $this, 'add_signature_settings' ), 10, 2 );
                 add_filter( 'super_enqueue_styles', array( $this, 'add_stylesheet' ), 10, 1 );
+                add_filter( 'super_enqueue_scripts', array( $this, 'add_scripts' ), 10, 1 );
+                add_filter( 'super_form_styles_filter', array( $this, 'add_element_styles' ), 10, 2 );
 
                 // Actions since 1.0.0
                 add_action( 'super_before_load_form_dropdown_hook', array( $this, 'add_ready_to_use_forms' ) );
@@ -172,7 +174,6 @@ if(!class_exists('SUPER_Signature')) :
                 // Filters since 1.0.0
 
                 // Actions since 1.0.0
-                add_action( 'super_before_sending_email_hook', array( $this, 'update_signature_subscribers' ) );
 
             }
             
@@ -214,17 +215,33 @@ if(!class_exists('SUPER_Signature')) :
 
 
         /**
-         * Hook into elements and add Signature element
-         * This element specifies the Signature List by it's given ID and retrieves it's Groups
+         * Hook into stylesheets of the form and add styles for the signature element
+         *
+         *  @since      1.0.0
+        */
+        public static function add_element_styles( $styles, $attributes ) {
+            $s = '.super-form-'.$attributes['id'].' ';
+            $v = $attributes['settings'];
+            $styles .= $s.'.super-signature-canvas {';
+    		$styles .= 'border: solid 1px ' . $v['theme_field_colors_border'] . ';';
+    		$styles .= 'background-color: ' . $v['theme_field_colors_top'] . ';';
+    		$styles .= '}';
+            return $styles;
+		}
+
+
+
+        /**
+         * Hook into stylesheets and add signature stylesheet
          *
          *  @since      1.0.0
         */
         public static function add_stylesheet( $array ) {
             $suffix         = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
             $assets_path    = str_replace( array( 'http:', 'https:' ), '', plugin_dir_url( __FILE__ ) ) . '/assets/';
-            $backend_path   = $assets_path . 'css/backend/';
+            $frontend_path   = $assets_path . 'css/frontend/';
             $array['super-signature'] = array(
-                'src'     => $backend_path . 'signature' . $suffix . '.css',
+                'src'     => $frontend_path . 'signature' . $suffix . '.css',
                 'deps'    => '',
                 'version' => SUPER_VERSION,
                 'media'   => 'all',
@@ -238,113 +255,74 @@ if(!class_exists('SUPER_Signature')) :
 
 
         /**
+         * Hook into scripts and add signature javascripts
+         *
+         *  @since      1.0.0
+        */
+        public static function add_scripts( $array ) {
+
+			$suffix         = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+            $assets_path    = str_replace( array( 'http:', 'https:' ), '', plugin_dir_url( __FILE__ ) ) . '/assets/';
+            $frontend_path  = $assets_path . 'js/frontend/';
+            $array['super-jquery-signature'] = array(
+                'src'     => $frontend_path . 'jquery.signature.js',
+                'deps'    => array( 'jquery', 'jquery-ui-mouse' ),
+                'version' => SUPER_VERSION,
+                'footer'  => false,
+                'screen'  => array( 
+                    'super-forms_page_super_create_form'
+                ),
+                'method' => 'enqueue'
+            );
+            $array['super-signature'] = array(
+                'src'     => $frontend_path . 'signature' . $suffix . '.js',
+                'deps'    => array( 'super-jquery-signature' ),
+                'version' => SUPER_VERSION,
+                'footer'  => false,
+                'screen'  => array( 
+                    'super-forms_page_super_create_form'
+                ),
+                'method' => 'enqueue'
+            );
+            return $array;
+        }
+
+
+        /**
          * Handle the Signature element output
          *
          *  @since      1.0.0
         */
         public static function signature( $tag, $atts ) {
-            if( !isset( $atts['display_interests'] ) ) $atts['display_interests'] = 'no';
-
-            if( $atts['display_interests']=='no' ) {
-                $atts['label'] = '';
-                $atts['description'] = '';
-                $atts['icon'] = '';
-            }
-
-            $tag = 'checkbox';
-            $classes = ' display-' . $atts['display'];
-            $result = SUPER_Shortcodes::opening_tag( $tag, $atts, $classes );
-
-            $show_hidden_field = true;
-
-            // Retrieve groups based on the given List ID:
-            $settings = get_option('super_settings');
-
-            // Check if the API key has been set
-            if( ( !isset( $settings['signature_key'] ) ) || ( $settings['signature_key']=='' ) ) {
-                $show_hidden_field = false;
-                $result .= '<strong style="color:red;">Please setup your API key in (Super Forms > Settings > Signature)</strong>';
-            }else{
-                if( ( !isset( $atts['list_id'] ) ) || ( $atts['list_id']=='' ) ) {
-                    $show_hidden_field = false;
-                    $result .= '<strong style="color:red;">Please enter your List ID and choose wether or not to retrieve Groups based on your List.</strong>';
-                }else{
-                    $list_id = sanitize_text_field( $atts['list_id'] );
-                    $api_key = $settings['signature_key'];
-                    $datacenter = explode('-', $api_key);
-                    if( !isset( $datacenter[1] ) ) {
-                		$result .= '<strong style="color:red;">Your API key seems to be invalid</strong>';
-                    }else{
-                    	if( $atts['display_interests']=='yes' ) {
-	                        $datacenter = $datacenter[1];
-	                        $endpoint = 'https://' . $datacenter . '.api.signature.com/3.0/';
-	                        $request = 'lists/' . $list_id . '/interest-categories/';
-	                        $url = $endpoint . $request;
-	                        $ch = curl_init();
-	                        curl_setopt( $ch, CURLOPT_URL, $url );
-	                        curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'content-type: application/json' ) );
-	                        curl_setopt( $ch, CURLOPT_USERPWD, 'anystring:' . $api_key ); 
-	                        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-	                        curl_setopt( $ch, CURLOPT_ENCODING, '' );
-	                        $output = curl_exec( $ch );
-	                        $output = json_decode( $output );
-	                        if( ( isset( $output->status ) ) && ( $output->status==401 ) ) {
-								$result .= '<strong style="color:red;">' . $output->detail . '</strong>';
-	                        }else{
-		                        if( !isset( $output->categories ) ) {
-		                            $result .= '<strong style="color:red;">The List ID seems to be invalid, please make sure you entered to correct List ID.</strong>';
-		                        }else{
-		                            $result .= SUPER_Shortcodes::opening_wrapper( $atts );
-		                            foreach( $output->categories as $k => $v ) {
-		                                $request = $request . $v->id . '/interests/';
-		                                $url = $endpoint.$request;
-		                                $ch = curl_init();
-		                                curl_setopt( $ch, CURLOPT_URL, $url );
-		                                curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'content-type: application/json' ) );
-		                                curl_setopt( $ch, CURLOPT_USERPWD, 'anystring:' . $api_key ); 
-		                                curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-		                                curl_setopt( $ch, CURLOPT_ENCODING, '' );
-		                                $output = curl_exec( $ch );
-		                                $output = json_decode( $output );
-		                                foreach( $output->interests as $ik => $iv ) {
-		                                    $result .= '<label><input type="checkbox" value="' . esc_attr( $iv->id ) . '" />' . $iv->name . '</label>';
-		                                }
-		                            }
-		                            $result .= '<input class="super-shortcode-field" type="hidden"';
-		                            $result .= ' name="signature_interests" value=""';
-		                            $result .= SUPER_Shortcodes::common_attributes( $atts, $tag );
-		                            $result .= ' />';
-		                            $result .= '</div>';
-		                        }
-	                    	}
-	                    }
-	                }
-                }
-            }
-            $result .= SUPER_Shortcodes::loop_conditions( $atts );
-            $result .= '</div>';
-
-            // Add the hidden fields
-            if( $atts['send_confirmation']=='yes' ) {
-                $atts['label'] = '';
-                $atts['description'] = '';
-                $atts['icon'] = '';
-                $classes = ' hidden';
-                $result .= SUPER_Shortcodes::opening_tag( 'hidden', $atts, $classes );
-                $result .= '<input class="super-shortcode-field" type="hidden" value="1" name="signature_send_confirmation" data-exclude="2" />';
-                $result .= '</div>';
-            }
-            if( $show_hidden_field==true ) {
-                $atts['label'] = '';
-                $atts['description'] = '';
-                $atts['icon'] = '';
-                $classes = ' hidden';
-                $result .= SUPER_Shortcodes::opening_tag( 'hidden', $atts, $classes );
-                $result .= '<input class="super-shortcode-field" type="hidden" value="' . $list_id . '" name="signature_list_id" data-exclude="2" />';
-                $result .= '</div>';
-            }
-
-            return $result;
+        	wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_VERSION );
+			wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_VERSION );
+			wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-jquery-signature' ), SUPER_VERSION );
+			$result = SUPER_Shortcodes::opening_tag( $tag, $atts );
+	        $result .= SUPER_Shortcodes::opening_wrapper( $atts );
+	        if( ( !isset( $atts['value'] ) ) || ( $atts['value']=='' ) ) {
+	            $atts['value'] = '';
+	        }else{
+	            $atts['value'] = SUPER_Common::email_tags( $atts['value'] );
+	        }
+	        $styles = '';
+	        if( !isset( $atts['height'] ) ) $atts['height'] = 100;
+	        if( !isset( $atts['bg_size'] ) ) $atts['bg_size'] = 75;
+	        if( !isset( $atts['background_img'] ) ) $atts['background_img'] = 0;
+	        $image = wp_prepare_attachment_for_js( $atts['background_img'] );
+	        $styles .= 'height:' . $atts['height'] . 'px;';
+	        $styles .= 'background-image:url(\'' . $image['url'] . '\');';
+	        $styles .= 'background-size:' . $atts['bg_size'] . 'px;';
+	        $result .= '<div class="super-signature-canvas" style="' . $styles . '"></div>';
+	        $result .= '<span class="super-signature-clear"></span>';
+	        $result .= '<textarea style="display:none;" class="super-shortcode-field"';
+	        $result .= ' name="' . $atts['name'] . '"';
+	        $result .= ' data-thickness="' . $atts['thickness'] . '"';
+	        $result .= SUPER_Shortcodes::common_attributes( $atts, $tag );
+	        $result .= ' />' . $atts['value'] . '</textarea>';
+	        $result .= '</div>';
+	        $result .= SUPER_Shortcodes::loop_conditions( $atts );
+	        $result .= '</div>';
+	        return $result;
         }
 
 
@@ -357,217 +335,54 @@ if(!class_exists('SUPER_Signature')) :
         public static function add_signature_element( $array, $attributes ) {
 
             // Include the predefined arrays
-            require(SUPER_PLUGIN_DIR.'/includes/shortcodes/predefined-arrays.php' );
+            require( SUPER_PLUGIN_DIR . '/includes/shortcodes/predefined-arrays.php' );
 
-            $array['form_elements']['shortcodes']['signature'] = array(
-                'callback' => 'SUPER_Signature::signature',
-                'name' => __( 'Signature', 'super' ),
-                'icon' => 'signature',
-                'atts' => array(
-                    'general' => array(
-                        'name' => __( 'General', 'super' ),
-                        'fields' => array(
-                            'list_id' => array(
-                                'name'=>__( 'Signature List ID', 'super' ), 
-                                'desc'=>__( 'Your List ID for example: 9e67587f52', 'super' ),
-                                'default'=> (!isset($attributes['list_id']) ? '' : $attributes['list_id']),
-                                'required'=>true, 
-                            ),
-                            'display_interests' => array(
-                                'name'=>__( 'Display interests', 'super' ),
-                                'desc'=>__( 'Allow users to select one or more interests (retrieved by given List ID)', 'super' ),
-                                'type' => 'select',
-                                'default'=> (!isset($attributes['interests']) ? 'no' : $attributes['interests']),
-                                'values' => array(
-                                    'no' => __( 'No', 'super' ), 
-                                    'yes' => __( 'Yes', 'super' ), 
-                                ),
-                            ),
-                            'send_confirmation' => array(
-                                'name'=>__( 'Send the Signature confirmation email', 'super' ),
-                                'desc'=>__( 'Users will receive a confirmation email before they are subscribed', 'super' ),
-                                'type' => 'select',
-                                'default'=> (!isset($attributes['send_confirmation']) ? 'no' : $attributes['send_confirmation']),
-                                'values' => array(
-                                    'no' => __( 'No', 'super' ), 
-                                    'yes' => __( 'Yes', 'super' ), 
-                                ),
-                            ),                            
-                            'email' => SUPER_Shortcodes::email($attributes, $default='Interests'),
-                            'label' => $label,
-                            'description'=> $description,
-                            'tooltip' => $tooltip,
-                            'validation' => $validation_empty,
-                            'error' => $error,  
-                        )
-                    ),
-                    'advanced' => array(
-                        'name' => __( 'Advanced', 'super' ),
-                        'fields' => array(
-                            'maxlength' => $maxlength,
-                            'minlength' => $minlength,
-                            'display' => array(
-                                'name'=>__( 'Vertical / Horizontal display', 'super' ), 
-                                'type' => 'select',
-                                'default'=> (!isset($attributes['display']) ? 'vertical' : $attributes['display']),
-                                'values' => array(
-                                    'vertical' => __( 'Vertical display ( | )', 'super' ), 
-                                    'horizontal' => __( 'Horizontal display ( -- )', 'super' ), 
-                                ),
-                            ),
-                            'grouped' => $grouped,                    
-                            'width' => $width,
-                            'exclude' => $exclude, 
-                            'error_position' => $error_position_left_only,
-                            
-                        ),
-                    ),
-                    'icon' => array(
-                        'name' => __( 'Icon', 'super' ),
-                        'fields' => array(
-                            'icon_position' => $icon_position,
-                            'icon_align' => $icon_align,
-                            'icon' => SUPER_Shortcodes::icon($attributes,'check-square-o'),
-                        ),
-                    ),
-                    'conditional_logic' => $conditional_logic_array
-                ),
-            );
+	        $array['form_elements']['shortcodes']['signature'] = array(
+	            'callback' => 'SUPER_Signature::signature',
+	            'name' => __( 'Signature', 'super' ),
+	            'icon' => 'pencil-square-o',
+	            'atts' => array(
+	                'general' => array(
+	                    'name' => __( 'General', 'super' ),
+	                    'fields' => array(
+	                        'name' => SUPER_Shortcodes::name( $attributes, $default='signature' ),
+	                        'email' => SUPER_Shortcodes::email( $attributes, $default='Signature' ),
+	                        'label' => $label,
+	                        'description'=>$description,
+	                        'thickness' => SUPER_Shortcodes::width( $attributes=null, $default=2, $min=1, $max=20, $steps=1, $name=__( 'Line Thickness', 'super' ), $desc=__( 'The thickness of the signature when drawing', 'super' ) ),
+	                        'background_img' => array(
+				                'name' => __( 'Custom sign here image', 'super' ),
+				                'desc' => __( 'Background image to show the user they can draw a signature', 'super' ),
+				                'default' => SUPER_Settings::get_value( 1, 'background_img', null, '' ),
+				                'type' => 'image',
+				            ),
+	                        'bg_size' => SUPER_Shortcodes::width( $attributes=null, $default=75, $min=0, $max=1000, $steps=10, $name=__( 'Image background size', 'super' ), $desc=__( 'You can adjust the size of your background image here', 'super' ) ),
+				            'tooltip' => $tooltip,
+	                        'error' => $error,
+	                    ),
+	                ),
+	                'advanced' => array(
+	                    'name' => __( 'Advanced', 'super' ),
+	                    'fields' => array(
+	                        'grouped' => $grouped,
+	                        'width' => SUPER_Shortcodes::width( $attributes=null, $default=350, $min=0, $max=600, $steps=10, $name=null, $desc=null ),
+	                        'height' => SUPER_Shortcodes::width( $attributes=null, $default=100, $min=0, $max=600, $steps=10, $name=null, $desc=null ),
+	                        'exclude' => $exclude,
+	                        'error_position' => $error_position,
+	                    ),
+	                ),
+	                'icon' => array(
+	                    'name' => __( 'Icon', 'super' ),
+	                    'fields' => array(
+	                        'icon_position' => $icon_position,
+	                        'icon_align' => $icon_align,
+	                        'icon' => SUPER_Shortcodes::icon( $attributes, 'pencil' ),
+	                    ),
+	                ),
+	                'conditional_logic' => $conditional_logic_array
+	            ),
+	        );
             return $array;
-        }
-
-
-        /**
-         * Hook into settings and add Signature settings
-         *
-         *  @since      1.0.0
-        */
-        public static function add_signature_settings( $array, $settings ) {
-            $array['signature'] = array(        
-                'name' => __( 'Signature', 'super' ),
-                'label' => __( 'Signature Settings', 'super' ),
-                'fields' => array(
-                    'signature_key' => array(
-                        'name' => __( 'API key', 'super' ),
-                        'default' => SUPER_Settings::get_value( 0, 'signature_key', $settings['settings'], '' ),
-                    )
-                )
-            );
-            return $array;
-        }
-
-
-        /**
-         * Hook into before sending email and check for subscribe or unsubscribe action
-         * After that do a curl request to signature to update the list by the given List ID
-         *
-         *  @since      1.0.0
-        */
-        public static function update_signature_subscribers( $atts ) {
-            
-            $data = $atts['post']['data'];
-            if( isset( $data['signature_list_id'] ) ) {
-
-                // Retreive the list ID
-                $list_id = sanitize_text_field( $data['signature_list_id']['value'] );
-                
-                // Setup CURL
-                $settings = get_option('super_settings');
-                $api_key = $settings['signature_key'];
-                $datacenter = explode('-', $api_key);
-                $datacenter = $datacenter[1];
-                $endpoint = 'https://' . $datacenter . '.api.signature.com/3.0/';
-                $request = 'lists/' . $list_id . '/interest-categories/';
-
-                $email = sanitize_email( $data['email']['value'] );
-                $email = strtolower($email);
-                $email_md5 = md5($email);
-                $request = 'lists/' . $list_id . '/members/';
-                $url = $endpoint.$request;
-                $patch_url = $url . $email_md5;
-
-                // Setup default user data
-                $user_data['email_address'] = $email;
-                if( isset( $data['first_name'] ) ) {
-                    $user_data['merge_fields']['FNAME'] = $data['first_name']['value'];
-                }
-                if( isset( $data['last_name'] ) ) {
-                    $user_data['merge_fields']['LNAME'] = $data['last_name']['value'];
-                }
-                if( $data['signature_send_confirmation']['value']==1 ) {
-                    $user_data['status'] = 'pending';
-                }else{
-                    $user_data['status'] = 'subscribed';
-                }
-
-                // Find out if we have some selected interests
-                if( isset( $data['signature_interests'] ) ) {
-                    $interests = explode( ', ', $data['signature_interests']['value'] );
-                    foreach($interests as $k => $v ){
-                        $user_data['interests'][$v] = true;
-                    }
-                }
-                
-                $data_string = json_encode($user_data); 
-                
-                $ch = curl_init();
-                curl_setopt( $ch, CURLOPT_URL, $url );
-                curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'content-type: application/json' ) );
-                curl_setopt( $ch, CURLOPT_USERPWD, 'anystring:' . $api_key ); 
-                curl_setopt( $ch, CURLOPT_POSTFIELDS, $data_string );
-                curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-                curl_setopt( $ch, CURLOPT_ENCODING, '' );
-                $output = curl_exec( $ch );
-                $output = json_decode( $output );
-
-                // User already exists for this list, lets update the user with a PUT request
-                if( $output->status==400 ) {
-
-                    // Only delete interests if this for is actually giving the user the option to select interests
-                    if( isset( $data['signature_interests'] ) ) {
-                        // First get all interests, and set each interests to false
-                        $ch = curl_init();
-                        curl_setopt( $ch, CURLOPT_URL, $patch_url );
-                        curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'content-type: application/json' ) );
-                        curl_setopt( $ch, CURLOPT_USERPWD, 'anystring:' . $api_key ); 
-                        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-                        curl_setopt( $ch, CURLOPT_ENCODING, '' );
-                        $output = curl_exec( $ch );
-                        $output = json_decode( $output );
-                        
-                        // Create a new object with all interests set to false
-                        foreach( $output->interests as $k => $v ) {
-                            $deleted_user_data['interests'][$k] = false;
-                        }
-                        $deleted_data_string = json_encode($deleted_user_data); 
-                        
-                        // Now update the user with it's new interests
-                        $ch = curl_init();
-                        curl_setopt( $ch, CURLOPT_URL, $patch_url );
-                        curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'content-type: application/json' ) );
-                        curl_setopt( $ch, CURLOPT_USERPWD, 'anystring:' . $api_key ); 
-                        curl_setopt( $ch, CURLOPT_POSTFIELDS, $deleted_data_string );
-                        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-                        curl_setopt( $ch, CURLOPT_ENCODING, '' );
-                        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH' );
-                        $output = curl_exec( $ch );
-                        $output = json_decode( $output );
-                    }
-
-                    // Now update the user with it's new interests
-                    $ch = curl_init();
-                    curl_setopt( $ch, CURLOPT_URL, $patch_url );
-                    curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'content-type: application/json' ) );
-                    curl_setopt( $ch, CURLOPT_USERPWD, 'anystring:' . $api_key ); 
-                    curl_setopt( $ch, CURLOPT_POSTFIELDS, $data_string );
-                    curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-                    curl_setopt( $ch, CURLOPT_ENCODING, '' );
-                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH' );
-                    $output = curl_exec( $ch );
-                    $output = json_decode( $output );
-
-                }
-            }
         }
     }
         
