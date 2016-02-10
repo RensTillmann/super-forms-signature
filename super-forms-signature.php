@@ -172,8 +172,10 @@ if(!class_exists('SUPER_Signature')) :
             if ( $this->is_request( 'ajax' ) ) {
 
                 // Filters since 1.0.0
+                add_filter( 'super_before_email_loop_data_filter', array( $this, 'add_signature_to_email_loop' ), 10, 2 );
 
                 // Actions since 1.0.0
+                add_action( 'super_before_email_loop_data', array( $this, 'continue_after_signature' ) );
 
             }
             
@@ -295,7 +297,8 @@ if(!class_exists('SUPER_Signature')) :
         */
         public static function signature( $tag, $atts ) {
         	wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_VERSION );
-			wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_VERSION );
+            wp_enqueue_script( 'super-jquery-touch-punch', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.ui.touch-punch.min.js', array( 'jquery', 'jquery-ui-widget', 'jquery-ui-mouse' ), SUPER_VERSION );
+            wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_VERSION );
 			wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-jquery-signature' ), SUPER_VERSION );
 			$result = SUPER_Shortcodes::opening_tag( $tag, $atts );
 	        $result .= SUPER_Shortcodes::opening_wrapper( $atts );
@@ -309,6 +312,7 @@ if(!class_exists('SUPER_Signature')) :
 	        if( !isset( $atts['bg_size'] ) ) $atts['bg_size'] = 75;
 	        if( !isset( $atts['background_img'] ) ) $atts['background_img'] = 0;
 	        $image = wp_prepare_attachment_for_js( $atts['background_img'] );
+            if( $image==null ) $image['url'] = plugin_dir_url( __FILE__ ) . 'assets/images/sign-here.png';
 	        $styles .= 'height:' . $atts['height'] . 'px;';
 	        $styles .= 'background-image:url(\'' . $image['url'] . '\');';
 	        $styles .= 'background-size:' . $atts['bg_size'] . 'px;';
@@ -349,15 +353,25 @@ if(!class_exists('SUPER_Signature')) :
 	                        'email' => SUPER_Shortcodes::email( $attributes, $default='Signature' ),
 	                        'label' => $label,
 	                        'description'=>$description,
-	                        'thickness' => SUPER_Shortcodes::width( $attributes=null, $default=2, $min=1, $max=20, $steps=1, $name=__( 'Line Thickness', 'super' ), $desc=__( 'The thickness of the signature when drawing', 'super' ) ),
+	                        'thickness' => SUPER_Shortcodes::width( $attributes=null, $default=1, $min=1, $max=20, $steps=1, $name=__( 'Line Thickness', 'super' ), $desc=__( 'The thickness of the signature when drawing', 'super' ) ),
 	                        'background_img' => array(
 				                'name' => __( 'Custom sign here image', 'super' ),
 				                'desc' => __( 'Background image to show the user they can draw a signature', 'super' ),
 				                'default' => SUPER_Settings::get_value( 1, 'background_img', null, '' ),
 				                'type' => 'image',
 				            ),
-	                        'bg_size' => SUPER_Shortcodes::width( $attributes=null, $default=75, $min=0, $max=1000, $steps=10, $name=__( 'Image background size', 'super' ), $desc=__( 'You can adjust the size of your background image here', 'super' ) ),
+	                        'bg_size' => SUPER_Shortcodes::width( $attributes=null, $default=150, $min=0, $max=1000, $steps=10, $name=__( 'Image background size', 'super' ), $desc=__( 'You can adjust the size of your background image here', 'super' ) ),
 				            'tooltip' => $tooltip,
+                            'validation' => array(
+                                'name'=>__( 'Special Validation', 'super' ), 
+                                'desc'=>__( 'How does this field need to be validated?', 'super' ), 
+                                'default'=> (!isset($attributes['validation']) ? 'none' : $attributes['validation']),
+                                'type'=>'select', 
+                                'values'=>array(
+                                    'none' => __( 'No validation needed', 'super' ),
+                                    'empty' => __( 'Not empty', 'super' ), 
+                                )
+                            ),
 	                        'error' => $error,
 	                    ),
 	                ),
@@ -383,6 +397,40 @@ if(!class_exists('SUPER_Signature')) :
 	            ),
 	        );
             return $array;
+        }
+
+
+        /**
+         * Filter: super_before_email_loop_data_filter
+         *
+         *  @since      1.0.0
+        */
+        public static function add_signature_to_email_loop( $row, $data ) {
+            $v = $data['v'];
+            $result['status'] = '';
+            $result['exclude'] = '';
+            $result['row'] = '';
+            if (strpos($v['value'], 'data:image/png;base64,') !== false) {
+                $signature_contact_image_data = $v['value'];
+                $signature_data = substr($signature_contact_image_data, strpos($signature_contact_image_data, ","));
+                $signature_filename = "signature.png";
+                $signature_encoding = "base64";
+                $signature_type = "image/png";
+                $data['string_attachments'][] = array(
+                    'data' => base64_decode($signature_data),
+                    'filename' => $signature_filename,
+                    'encoding' => $signature_encoding,
+                    'type' => $signature_type
+
+                );
+                if( isset( $v['label'] ) ) $row = str_replace( '{loop_label}', SUPER_Common::decode( $v['label'] ), $row );
+                if( isset( $v['value'] ) ) $row = str_replace( '{loop_value}', '<img src="' . $v['value'] . '" />', $row );
+                $result['status'] = 'continue';
+                $result['exclude'] = $v['exclude'];
+                $result['row'] = $row;
+                $result['string_attachments'] = $data['string_attachments'];
+            }
+            return $result;
         }
     }
         
