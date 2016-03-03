@@ -1,2 +1,5 @@
+March 4, 2015 - Version 1.0.1
+- Fix: When both signature and upload field is being used undefined variable is being returned after sending the email and saving the contact entry, this results in the success message not being displayed
+
 Februari 11, 2016 – Version 1.0.0
 - Initial release!
