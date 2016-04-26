@@ -11,7 +11,7 @@
  * Plugin Name: Super Forms Signature
  * Plugin URI:  http://codecanyon.net/item/super-forms-drag-drop-form-builder/13979866
  * Description: Adds an extra element that allows users to sign their signature before submitting the form
- * Version:     1.0.1
+ * Version:     1.0.2
  * Author:      feeling4design
  * Author URI:  http://codecanyon.net/user/feeling4design
 */
@@ -37,7 +37,7 @@ if(!class_exists('SUPER_Signature')) :
          *
          *	@since		1.0.0
         */
-        public $version = '1.0.1';
+        public $version = '1.0.2';
 
         
         /**
@@ -154,6 +154,19 @@ if(!class_exists('SUPER_Signature')) :
 
                 // Actions since 1.0.0
                 
+                /**
+                 * Check if this site uses Ajax calls to generate content dynamically
+                 * If this is the case make sure the styles and scripts for the element(s) are loaded
+                 *
+                 *  @since      1.0.2
+                */
+                $settings = get_option( 'super_settings' );
+                if( isset( $settings['enable_ajax'] ) ) {
+                    if( $settings['enable_ajax']=='1' ) {
+                        add_action( 'wp_enqueue_scripts', array( $this, 'load_frontend_scripts_before_ajax' ) );
+                    }
+                }
+                
             }
             
             if ( $this->is_request( 'admin' ) ) {
@@ -182,6 +195,19 @@ if(!class_exists('SUPER_Signature')) :
         }
 
         
+        /**
+         * Enqueue scripts before ajax call is made
+         *
+         *  @since      1.0.2
+        */
+        public static function load_frontend_scripts_before_ajax() {
+            wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_VERSION );
+            wp_enqueue_script( 'super-jquery-touch-punch', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.ui.touch-punch.min.js', array( 'jquery', 'jquery-ui-widget', 'jquery-ui-mouse' ), SUPER_VERSION );
+            wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_VERSION );
+            wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-common', 'super-jquery-signature' ), SUPER_VERSION );
+        }
+
+
         /**
          * Hook into the load form dropdown and add some ready to use forms
          *
@@ -296,11 +322,19 @@ if(!class_exists('SUPER_Signature')) :
          *  @since      1.0.0
         */
         public static function signature( $tag, $atts ) {
-        	wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_VERSION );
+            $result = '';
+            if( SUPER_Signature()->is_request('ajax') ){
+                $url = plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css';
+                $css = wp_remote_fopen($url);
+                $result .= '<style>' . $css . '</style>';
+            }else{
+                wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_VERSION );
+            }
             wp_enqueue_script( 'super-jquery-touch-punch', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.ui.touch-punch.min.js', array( 'jquery', 'jquery-ui-widget', 'jquery-ui-mouse' ), SUPER_VERSION );
             wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_VERSION );
 			wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-jquery-signature' ), SUPER_VERSION );
-			$result = SUPER_Shortcodes::opening_tag( $tag, $atts );
+
+            $result .= SUPER_Shortcodes::opening_tag( $tag, $atts );
 	        $result .= SUPER_Shortcodes::opening_wrapper( $atts );
 	        if( ( !isset( $atts['value'] ) ) || ( $atts['value']=='' ) ) {
 	            $atts['value'] = '';
@@ -379,8 +413,8 @@ if(!class_exists('SUPER_Signature')) :
 	                    'name' => __( 'Advanced', 'super' ),
 	                    'fields' => array(
 	                        'grouped' => $grouped,
-	                        'width' => SUPER_Shortcodes::width( $attributes=null, $default=350, $min=0, $max=600, $steps=10, $name=null, $desc=null ),
-	                        'height' => SUPER_Shortcodes::width( $attributes=null, $default=100, $min=0, $max=600, $steps=10, $name=null, $desc=null ),
+	                        'width' => SUPER_Shortcodes::width( $attributes=null, $default=0, $min=0, $max=600, $steps=10, $name=null, $desc=null ),
+	                        'height' => SUPER_Shortcodes::width( $attributes=null, $default=100, $min=0, $max=600, $steps=10, $name=__( 'Field height in pixels', 'super-forms' ), $desc=__( 'Set to 0 to use default CSS height', 'super-forms' ) ),
 	                        'exclude' => $exclude,
 	                        'error_position' => $error_position,
 	                    ),
