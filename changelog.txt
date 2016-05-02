@@ -1,3 +1,7 @@
+May 3, 2016 - Version 1.0.2
+- Fix: When theme uses Ajax call make sure scripts are loaded before the call is made
+- Fix: Parsing Super Forms version instead of own plugin version when registering script 
+
 March 4, 2015 - Version 1.0.1
 - Fix: When both signature and upload field is being used undefined variable is being returned after sending the email and saving the contact entry, this results in the success message not being displayed
 

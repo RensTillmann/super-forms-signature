@@ -201,10 +201,10 @@ if(!class_exists('SUPER_Signature')) :
          *  @since      1.0.2
         */
         public static function load_frontend_scripts_before_ajax() {
-            wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_VERSION );
-            wp_enqueue_script( 'super-jquery-touch-punch', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.ui.touch-punch.min.js', array( 'jquery', 'jquery-ui-widget', 'jquery-ui-mouse' ), SUPER_VERSION );
-            wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_VERSION );
-            wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-common', 'super-jquery-signature' ), SUPER_VERSION );
+            wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_Signature()->version );
+            wp_enqueue_script( 'super-jquery-touch-punch', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.ui.touch-punch.min.js', array( 'jquery', 'jquery-ui-widget', 'jquery-ui-mouse' ), SUPER_Signature()->version );
+            wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_Signature()->version );
+            wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-common', 'super-jquery-signature' ), SUPER_Signature()->version );
         }
 
 
@@ -271,7 +271,7 @@ if(!class_exists('SUPER_Signature')) :
             $array['super-signature'] = array(
                 'src'     => $frontend_path . 'signature' . $suffix . '.css',
                 'deps'    => '',
-                'version' => SUPER_VERSION,
+                'version' => SUPER_Signature()->version,
                 'media'   => 'all',
                 'screen'  => array( 
                     'super-forms_page_super_create_form'
@@ -295,7 +295,7 @@ if(!class_exists('SUPER_Signature')) :
             $array['super-jquery-signature'] = array(
                 'src'     => $frontend_path . 'jquery.signature.js',
                 'deps'    => array( 'jquery', 'jquery-ui-mouse' ),
-                'version' => SUPER_VERSION,
+                'version' => SUPER_Signature()->version,
                 'footer'  => false,
                 'screen'  => array( 
                     'super-forms_page_super_create_form'
@@ -305,7 +305,7 @@ if(!class_exists('SUPER_Signature')) :
             $array['super-signature'] = array(
                 'src'     => $frontend_path . 'signature' . $suffix . '.js',
                 'deps'    => array( 'super-jquery-signature' ),
-                'version' => SUPER_VERSION,
+                'version' => SUPER_Signature()->version,
                 'footer'  => false,
                 'screen'  => array( 
                     'super-forms_page_super_create_form'
@@ -321,21 +321,21 @@ if(!class_exists('SUPER_Signature')) :
          *
          *  @since      1.0.0
         */
-        public static function signature( $tag, $atts ) {
+        public static function signature( $tag, $atts, $inner, $shortcodes=null, $settings=null ) {
             $result = '';
             if( SUPER_Signature()->is_request('ajax') ){
                 $url = plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css';
                 $css = wp_remote_fopen($url);
                 $result .= '<style>' . $css . '</style>';
             }else{
-                wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_VERSION );
+                wp_enqueue_style( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css', array(), SUPER_Signature()->version );
             }
-            wp_enqueue_script( 'super-jquery-touch-punch', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.ui.touch-punch.min.js', array( 'jquery', 'jquery-ui-widget', 'jquery-ui-mouse' ), SUPER_VERSION );
-            wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_VERSION );
-			wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-jquery-signature' ), SUPER_VERSION );
+            wp_enqueue_script( 'super-jquery-touch-punch', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.ui.touch-punch.min.js', array( 'jquery', 'jquery-ui-widget', 'jquery-ui-mouse' ), SUPER_Signature()->version );
+            wp_enqueue_script( 'super-jquery-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/jquery.signature.js', array( 'jquery', 'jquery-ui-mouse' ), SUPER_Signature()->version );
+			wp_enqueue_script( 'super-signature', plugin_dir_url( __FILE__ ) . 'assets/js/frontend/signature.min.js', array( 'super-jquery-signature' ), SUPER_Signature()->version );
 
             $result .= SUPER_Shortcodes::opening_tag( $tag, $atts );
-	        $result .= SUPER_Shortcodes::opening_wrapper( $atts );
+	        $result .= SUPER_Shortcodes::opening_wrapper( $atts, $inner, $shortcodes, $settings );
 	        if( ( !isset( $atts['value'] ) ) || ( $atts['value']=='' ) ) {
 	            $atts['value'] = '';
 	        }else{
