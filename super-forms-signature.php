@@ -377,40 +377,40 @@ if(!class_exists('SUPER_Signature')) :
 
 	        $array['form_elements']['shortcodes']['signature'] = array(
 	            'callback' => 'SUPER_Signature::signature',
-	            'name' => __( 'Signature', 'super' ),
+	            'name' => __( 'Signature', 'super-forms' ),
 	            'icon' => 'pencil-square-o',
 	            'atts' => array(
 	                'general' => array(
-	                    'name' => __( 'General', 'super' ),
+	                    'name' => __( 'General', 'super-forms' ),
 	                    'fields' => array(
 	                        'name' => SUPER_Shortcodes::name( $attributes, $default='signature' ),
 	                        'email' => SUPER_Shortcodes::email( $attributes, $default='Signature' ),
 	                        'label' => $label,
 	                        'description'=>$description,
-	                        'thickness' => SUPER_Shortcodes::width( $attributes=null, $default=1, $min=1, $max=20, $steps=1, $name=__( 'Line Thickness', 'super' ), $desc=__( 'The thickness of the signature when drawing', 'super' ) ),
+	                        'thickness' => SUPER_Shortcodes::width( $attributes=null, $default=1, $min=1, $max=20, $steps=1, $name=__( 'Line Thickness', 'super-forms' ), $desc=__( 'The thickness of the signature when drawing', 'super-forms' ) ),
 	                        'background_img' => array(
-				                'name' => __( 'Custom sign here image', 'super' ),
-				                'desc' => __( 'Background image to show the user they can draw a signature', 'super' ),
+				                'name' => __( 'Custom sign here image', 'super-forms' ),
+				                'desc' => __( 'Background image to show the user they can draw a signature', 'super-forms' ),
 				                'default' => SUPER_Settings::get_value( 1, 'background_img', null, '' ),
 				                'type' => 'image',
 				            ),
-	                        'bg_size' => SUPER_Shortcodes::width( $attributes=null, $default=150, $min=0, $max=1000, $steps=10, $name=__( 'Image background size', 'super' ), $desc=__( 'You can adjust the size of your background image here', 'super' ) ),
+	                        'bg_size' => SUPER_Shortcodes::width( $attributes=null, $default=150, $min=0, $max=1000, $steps=10, $name=__( 'Image background size', 'super-forms' ), $desc=__( 'You can adjust the size of your background image here', 'super-forms' ) ),
 				            'tooltip' => $tooltip,
                             'validation' => array(
-                                'name'=>__( 'Special Validation', 'super' ), 
-                                'desc'=>__( 'How does this field need to be validated?', 'super' ), 
+                                'name'=>__( 'Special Validation', 'super-forms' ), 
+                                'desc'=>__( 'How does this field need to be validated?', 'super-forms' ), 
                                 'default'=> (!isset($attributes['validation']) ? 'none' : $attributes['validation']),
                                 'type'=>'select', 
                                 'values'=>array(
-                                    'none' => __( 'No validation needed', 'super' ),
-                                    'empty' => __( 'Not empty', 'super' ), 
+                                    'none' => __( 'No validation needed', 'super-forms' ),
+                                    'empty' => __( 'Not empty', 'super-forms' ), 
                                 )
                             ),
 	                        'error' => $error,
 	                    ),
 	                ),
 	                'advanced' => array(
-	                    'name' => __( 'Advanced', 'super' ),
+	                    'name' => __( 'Advanced', 'super-forms' ),
 	                    'fields' => array(
 	                        'grouped' => $grouped,
 	                        'width' => SUPER_Shortcodes::width( $attributes=null, $default=0, $min=0, $max=600, $steps=10, $name=null, $desc=null ),
@@ -420,7 +420,7 @@ if(!class_exists('SUPER_Signature')) :
 	                    ),
 	                ),
 	                'icon' => array(
-	                    'name' => __( 'Icon', 'super' ),
+	                    'name' => __( 'Icon', 'super-forms' ),
 	                    'fields' => array(
 	                        'icon_position' => $icon_position,
 	                        'icon_align' => $icon_align,
