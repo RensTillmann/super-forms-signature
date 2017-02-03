@@ -1,3 +1,6 @@
+Feb 03, 2017 - Version 1.1.0
+- Added: Automatic updates
+
 Oct 9, 2016 - Version 1.0.4
 - Improved: Hide scope, no $ conflict
 
