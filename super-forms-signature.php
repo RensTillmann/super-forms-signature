@@ -11,7 +11,7 @@
  * Plugin Name: Super Forms Signature
  * Plugin URI:  http://codecanyon.net/item/super-forms-drag-drop-form-builder/13979866
  * Description: Adds an extra element that allows users to sign their signature before submitting the form
- * Version:     1.1.0
+ * Version:     1.2.0
  * Author:      feeling4design
  * Author URI:  http://codecanyon.net/user/feeling4design
 */
@@ -37,7 +37,7 @@ if(!class_exists('SUPER_Signature')) :
          *
          *	@since		1.0.0
         */
-        public $version = '1.1.0';
+        public $version = '1.2.0';
 
 
         /**
@@ -523,7 +523,7 @@ if(!class_exists('SUPER_Signature')) :
             if (strpos($v['value'], 'data:image/png;base64,') !== false) {
                 $signature_contact_image_data = $v['value'];
                 $signature_data = substr($signature_contact_image_data, strpos($signature_contact_image_data, ","));
-                $signature_filename = "signature.png";
+                $signature_filename = $v['name'] . ".png";
                 $signature_encoding = "base64";
                 $signature_type = "image/png";
                 $data['string_attachments'][] = array(
