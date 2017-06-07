@@ -340,7 +340,7 @@ if(!class_exists('SUPER_Signature')) :
          *  @since      1.0.0
         */
         public static function add_stylesheet( $array ) {
-            $suffix         = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+            $suffix         = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '.min' : '.min';
             $assets_path    = str_replace( array( 'http:', 'https:' ), '', plugin_dir_url( __FILE__ ) ) . '/assets/';
             $frontend_path   = $assets_path . 'css/frontend/';
             $array['super-signature'] = array(
@@ -364,7 +364,7 @@ if(!class_exists('SUPER_Signature')) :
         */
         public static function add_scripts( $array ) {
 
-			$suffix         = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+			$suffix         = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '.min' : '.min';
             $assets_path    = str_replace( array( 'http:', 'https:' ), '', plugin_dir_url( __FILE__ ) ) . '/assets/';
             $frontend_path  = $assets_path . 'js/frontend/';
             $array['super-jquery-signature'] = array(
