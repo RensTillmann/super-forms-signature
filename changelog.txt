@@ -1,3 +1,6 @@
+Oct 02, 2017 - Version 1.2.1
+- Fix: Parse base64 image as string, and do not decode (now done on super forms side)
+
 Feb 23, 2017 - Version 1.2.0
 - Improved: When using multiple signatures use the unique field name as filename for the signature in emails (attachment)
 
