@@ -11,7 +11,7 @@
  * Plugin Name: Super Forms Signature
  * Plugin URI:  http://codecanyon.net/item/super-forms-drag-drop-form-builder/13979866
  * Description: Adds an extra element that allows users to sign their signature before submitting the form
- * Version:     1.2.1
+ * Version:     1.2.2
  * Author:      feeling4design
  * Author URI:  http://codecanyon.net/user/feeling4design
 */
@@ -37,7 +37,7 @@ if(!class_exists('SUPER_Signature')) :
          *
          *	@since		1.0.0
         */
-        public $version = '1.2.1';
+        public $version = '1.2.2';
 
 
         /**
@@ -153,6 +153,7 @@ if(!class_exists('SUPER_Signature')) :
             
             // @since 1.1.0
             register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+
             // Filters since 1.1.0
             add_filter( 'super_after_activation_message_filter', array( $this, 'activation_message' ), 10, 2 );
 
@@ -165,8 +166,10 @@ if(!class_exists('SUPER_Signature')) :
                 // Filters since 1.0.0
             	add_filter( 'super_form_styles_filter', array( $this, 'add_element_styles' ), 10, 2 );
 
-                // Actions since 1.0.0
-                
+                // Filters since 1.2.2
+                add_filter( 'super_common_js_dynamic_functions_filter', array( $this, 'add_dynamic_function' ), 110, 2 );
+
+
                 /**
                  * Check if this site uses Ajax calls to generate content dynamically
                  * If this is the case make sure the styles and scripts for the element(s) are loaded
@@ -199,6 +202,9 @@ if(!class_exists('SUPER_Signature')) :
                 // Actions since 1.1.0
                 add_action( 'init', array( $this, 'update_plugin' ) );
 
+                // Filters since 1.2.2
+                add_filter( 'super_common_js_dynamic_functions_filter', array( $this, 'add_dynamic_function' ), 110, 2 );
+
             }
             
             if ( $this->is_request( 'ajax' ) ) {
@@ -213,7 +219,29 @@ if(!class_exists('SUPER_Signature')) :
             
         }
 
-        
+
+        /**
+         * Add dynamic JavaScript functions
+         *
+         *  @since      1.0.0
+        */
+        public static function add_dynamic_function( $functions ) {
+            
+            // @since 1.2.2
+            $functions['after_duplicating_column_hook'][] = array(
+                'name' => 'init_signature_after_duplicating_column'
+            );
+            $functions['after_appending_duplicated_column_hook'][] = array(
+                'name' => 'init_remove_initialized_class'
+            );
+            $functions['after_form_cleared_hook'][] = array(
+                'name' => 'init_clear_signatures'
+            );
+
+            return $functions;
+        }
+
+                
         /**
          * Automatically update plugin from the repository
          *

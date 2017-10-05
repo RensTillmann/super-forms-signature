@@ -1,3 +1,6 @@
+Oct 06, 2017 - Version 1.2.2
+- Added: Possibility for signature element to be inside a dynamic column
+
 Oct 02, 2017 - Version 1.2.1
 - Fix: Parse base64 image as string, and do not decode (now done on super forms side)
 
