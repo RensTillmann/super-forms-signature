@@ -1,4 +1,4 @@
-Oct 06, 2017 - Version 1.2.2
+Nov 16, 2017 - Version 1.2.2
 - Added: Possibility for signature element to be inside a dynamic column
 
 Oct 02, 2017 - Version 1.2.1

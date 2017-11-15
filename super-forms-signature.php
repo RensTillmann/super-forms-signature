@@ -205,6 +205,9 @@ if(!class_exists('SUPER_Signature')) :
                 // Filters since 1.2.2
                 add_filter( 'super_common_js_dynamic_functions_filter', array( $this, 'add_dynamic_function' ), 110, 2 );
 
+                // Actions since 1.2.2
+                add_action( 'all_admin_notices', array( $this, 'display_activation_msg' ) ); 
+
             }
             
             if ( $this->is_request( 'ajax' ) ) {
@@ -219,6 +222,29 @@ if(!class_exists('SUPER_Signature')) :
             
         }
 
+       
+       /**
+         * Display activation message for automatic updates
+         *
+         *  @since      1.2.2
+        */
+        public function display_activation_msg() {
+            if( !class_exists('SUPER_Forms') ) {
+                echo '<div class="notice notice-error">'; // notice-success
+                    echo '<p>';
+                    echo sprintf( 
+                        __( '%sPlease note:%s You must install and activate %4$s%1$sSuper Forms%2$s%5$s in order to be able to use %1$s%s%2$s!', 'super_forms' ), 
+                        '<strong>', 
+                        '</strong>', 
+                        'Super Forms - ' . $this->add_on_name, 
+                        '<a target="_blank" href="https://codecanyon.net/item/super-forms-drag-drop-form-builder/13979866">', 
+                        '</a>' 
+                    );
+                    echo '</p>';
+                echo '</div>';
+            }
+        }
+        
 
         /**
          * Add dynamic JavaScript functions
