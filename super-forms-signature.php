@@ -11,7 +11,7 @@
  * Plugin Name: Super Forms Signature
  * Plugin URI:  http://codecanyon.net/item/super-forms-drag-drop-form-builder/13979866
  * Description: Adds an extra element that allows users to sign their signature before submitting the form
- * Version:     1.2.2
+ * Version:     1.3.0
  * Author:      feeling4design
  * Author URI:  http://codecanyon.net/user/feeling4design
 */
@@ -37,7 +37,7 @@ if(!class_exists('SUPER_Signature')) :
          *
          *	@since		1.0.0
         */
-        public $version = '1.2.2';
+        public $version = '1.3.0';
 
 
         /**
@@ -451,6 +451,26 @@ if(!class_exists('SUPER_Signature')) :
          *  @since      1.0.0
         */
         public static function signature( $tag, $atts, $inner, $shortcodes=null, $settings=null ) {
+         
+            // Fallback check for older super form versions
+            if (method_exists('SUPER_Common','generate_array_default_element_settings')) {
+                $defaults = SUPER_Common::generate_array_default_element_settings($shortcodes, 'form_elements', $tag);
+            }else{
+                $defaults = array(
+                    'name' => 'subtotal',
+                    'thickness' => 1,
+                    'bg_size' => 150,
+                    'width' => 0,
+                    'height' => 100,
+                    'icon' => 'pencil',
+                );
+            }
+            $atts = wp_parse_args( $atts, $defaults );
+            if(empty($atts['bg_size'])) $atts['bg_size'] = 150;
+            if(empty($atts['width'])) $atts['width'] = 0;
+            if(empty($atts['height'])) $atts['height'] = 100;
+            if(empty($atts['thickness'])) $atts['thickness'] = 1;
+
             $result = '';
             if( SUPER_Signature()->is_request('ajax') ){
                 $url = plugin_dir_url( __FILE__ ) . 'assets/css/frontend/signature.min.css';
@@ -471,9 +491,6 @@ if(!class_exists('SUPER_Signature')) :
 	            $atts['value'] = SUPER_Common::email_tags( $atts['value'] );
 	        }
 	        $styles = '';
-	        if( !isset( $atts['height'] ) ) $atts['height'] = 100;
-	        if( !isset( $atts['bg_size'] ) ) $atts['bg_size'] = 75;
-	        if( !isset( $atts['background_img'] ) ) $atts['background_img'] = 0;
 	        $image = wp_prepare_attachment_for_js( $atts['background_img'] );
             if( $image==null ) $image['url'] = plugin_dir_url( __FILE__ ) . 'assets/images/sign-here.png';
 	        $styles .= 'height:' . $atts['height'] . 'px;';
@@ -504,26 +521,42 @@ if(!class_exists('SUPER_Signature')) :
             // Include the predefined arrays
             require( SUPER_PLUGIN_DIR . '/includes/shortcodes/predefined-arrays.php' );
 
+            $array['form_elements']['shortcodes']['signature_predefined'] = array(
+                'name' => __( 'Signature', 'super-forms' ),
+                'icon' => 'pencil-square-o',
+                'predefined' => array(
+                    array(
+                        'tag' => 'signature',
+                        'group' => 'form_elements',
+                        'data' => array(
+                            'name' => __( 'signature', 'super-forms' ),
+                            'email' => __( 'Signature:', 'super-forms' ),
+                            'icon' => 'pencil',
+                        )
+                    )
+                )
+            );
 	        $array['form_elements']['shortcodes']['signature'] = array(
-	            'callback' => 'SUPER_Signature::signature',
+	            'hidden' => true,
+                'callback' => 'SUPER_Signature::signature',
 	            'name' => __( 'Signature', 'super-forms' ),
 	            'icon' => 'pencil-square-o',
 	            'atts' => array(
 	                'general' => array(
 	                    'name' => __( 'General', 'super-forms' ),
 	                    'fields' => array(
-	                        'name' => SUPER_Shortcodes::name( $attributes, $default='signature' ),
-	                        'email' => SUPER_Shortcodes::email( $attributes, $default='Signature' ),
+	                        'name' => SUPER_Shortcodes::name( $attributes, '' ),
+	                        'email' => SUPER_Shortcodes::email( $attributes, '' ),
 	                        'label' => $label,
 	                        'description'=>$description,
-	                        'thickness' => SUPER_Shortcodes::width( $attributes=null, $default=1, $min=1, $max=20, $steps=1, $name=__( 'Line Thickness', 'super-forms' ), $desc=__( 'The thickness of the signature when drawing', 'super-forms' ) ),
+	                        'thickness' => SUPER_Shortcodes::width( $attributes=null, $default='', $min=1, $max=20, $steps=1, $name=__( 'Line Thickness', 'super-forms' ), $desc=__( 'The thickness of the signature when drawing', 'super-forms' ) ),
 	                        'background_img' => array(
 				                'name' => __( 'Custom sign here image', 'super-forms' ),
 				                'desc' => __( 'Background image to show the user they can draw a signature', 'super-forms' ),
 				                'default' => SUPER_Settings::get_value( 1, 'background_img', null, '' ),
 				                'type' => 'image',
 				            ),
-	                        'bg_size' => SUPER_Shortcodes::width( $attributes=null, $default=150, $min=0, $max=1000, $steps=10, $name=__( 'Image background size', 'super-forms' ), $desc=__( 'You can adjust the size of your background image here', 'super-forms' ) ),
+	                        'bg_size' => SUPER_Shortcodes::width( $attributes=null, $default='', $min=0, $max=1000, $steps=10, $name=__( 'Image background size', 'super-forms' ), $desc=__( 'You can adjust the size of your background image here', 'super-forms' ) ),
 				            'tooltip' => $tooltip,
                             'validation' => array(
                                 'name'=>__( 'Special Validation', 'super-forms' ), 
@@ -542,8 +575,8 @@ if(!class_exists('SUPER_Signature')) :
 	                    'name' => __( 'Advanced', 'super-forms' ),
 	                    'fields' => array(
 	                        'grouped' => $grouped,
-	                        'width' => SUPER_Shortcodes::width( $attributes=null, $default=0, $min=0, $max=600, $steps=10, $name=null, $desc=null ),
-	                        'height' => SUPER_Shortcodes::width( $attributes=null, $default=100, $min=0, $max=600, $steps=10, $name=__( 'Field height in pixels', 'super-forms' ), $desc=__( 'Set to 0 to use default CSS height', 'super-forms' ) ),
+	                        'width' => SUPER_Shortcodes::width( $attributes=null, $default='', $min=0, $max=600, $steps=10, $name=null, $desc=null ),
+	                        'height' => SUPER_Shortcodes::width( $attributes=null, $default='', $min=0, $max=600, $steps=10, $name=__( 'Field height in pixels', 'super-forms' ), $desc=__( 'Set to 0 to use default CSS height', 'super-forms' ) ),
 	                        'exclude' => $exclude,
 	                        'error_position' => $error_position,
 	                    ),
@@ -553,7 +586,7 @@ if(!class_exists('SUPER_Signature')) :
 	                    'fields' => array(
 	                        'icon_position' => $icon_position,
 	                        'icon_align' => $icon_align,
-	                        'icon' => SUPER_Shortcodes::icon( $attributes, 'pencil' ),
+	                        'icon' => SUPER_Shortcodes::icon( $attributes, '' ),
 	                    ),
 	                ),
 	                'conditional_logic' => $conditional_logic_array
